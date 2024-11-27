@@ -1,12 +1,14 @@
 from pydantic import BaseModel, EmailStr
 
 class UserRequestAdd(BaseModel):
+    username: str
     first_name: str
     second_name: str
     email: EmailStr
     password: str   
 
 class UserAdd(BaseModel):
+    username: str
     first_name: str
     second_name: str
     email: EmailStr
@@ -15,7 +17,7 @@ class UserAdd(BaseModel):
 class User(UserAdd):
     id: int
     is_active: bool
-
+ 
 class UserLogin(BaseModel):
-    email: EmailStr
+    username: str
     password: str

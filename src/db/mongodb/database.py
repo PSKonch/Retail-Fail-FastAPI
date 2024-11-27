@@ -1,23 +1,18 @@
+from beanie import Document, init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 
-MONGO_URI = "mongodb://localhost:27017"
-DATABASE_NAME = "retail"
+class User(Document):
+    name: str
+    email: str
 
-# Асинхронное подключение к MongoDB
-client = AsyncIOMotorClient(MONGO_URI)
+    class Settings:
+        collection = "users"
 
-# Доступ к базе данных
-db = client[DATABASE_NAME]
+async def init_db():
+    client = AsyncIOMotorClient("mongodb://localhost:27017")
+    await init_beanie(database=client.my_database, document_models=[User])
 
-# Доступ к коллекции
-collection = db["my_collection"]
-
-# Асинхронная вставка документа
-async def insert_document():
-    document = {"name": "Alice", "age": 25, "city": "New York"}
-    result = await collection.insert_one(document)
-    print(f"Inserted document with ID: {result.inserted_id}")
-
-# Асинхронный вызов
-import asyncio
-asyncio.run(insert_document())
+# Использование
+async def create_user():
+    user = User(name="Dimitriy", email="dimitriy@example.com")
+    await user.insert()
