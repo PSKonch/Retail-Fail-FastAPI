@@ -8,6 +8,11 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from src.db.postgres.database import Base
+from src.models.categories import CategoryModel
+from src.models.products import ProductModel
+from src.models.users import UserModel
+from src.models.orders import OrderModel
+from src.models.order_items import OrderItemModel
 
 from src.core.setting import settings
 
