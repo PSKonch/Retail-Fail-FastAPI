@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, insert, delete, update
 
-from src.db.postgres.manager import db_manager
+from src.utils.dependencies import db_manager
 from src.db.postgres.database import database as db
 from src.models.products import ProductModel
 from src.schemas.products import Product, ProductAdd

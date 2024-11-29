@@ -1,10 +1,10 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from src.db.postgres.database import get_db, AsyncSession, async_session_maker
+from src.db.postgres.database import async_session_maker
 from src.repositories.products import ProductRepository
+from src.repositories.cart import CartRepository
 
 class DBManager:
     def __init__(self, session_factory):
@@ -14,6 +14,7 @@ class DBManager:
         self.session = self.session_factory()
 
         self.product = ProductRepository(self.session)
+        self.cart = CartRepository(self.session)
 
         return self
 
@@ -26,10 +27,3 @@ class DBManager:
 
     async def rollback(self):
         await self.session.rollback()
-
-
-async def get_db():
-    async with DBManager(session_factory=async_session_maker) as db:
-        yield db
-
-db_manager = Annotated[DBManager, Depends(get_db)]
