@@ -1,7 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-
     POSTGRES_NAME: str
     POSTGRES_HOST: str
     POSTGRES_PORT: int
@@ -16,6 +15,13 @@ class Settings(BaseSettings):
     SMTP_PORT: int
     SMTP_USERNAME: str
     SMTP_PASSWORD: str
+
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+
+    @property
+    def REDIS_URL(self):
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}"
 
     model_config = SettingsConfigDict(env_file=".env")
 
