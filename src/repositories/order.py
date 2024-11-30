@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from src.models.cart import CartModel
 from src.models.order_items import OrderItemModel
 from src.models.orders import OrderModel
@@ -44,3 +44,11 @@ class OrderRepository(BaseRepository):
         new_order.total_price = total_price
         await CartRepository(self.session).clear_cart(user_id=user_id)
         return new_order
+    
+    async def get_filtered(self, user_id: int):
+        result = await self.session.execute(
+            select(OrderModel)
+            .options(selectinload(OrderModel.items).selectinload(OrderItemModel.product))  # Загружаем связанные данные
+            .where(OrderModel.user_id == user_id)
+        )
+        return result.scalars().all()

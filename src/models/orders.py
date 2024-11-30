@@ -11,6 +11,6 @@ class OrderModel(Base):
     status: Mapped[str]
     total_price: Mapped[int]
 
-    user_id: Mapped[int] = mapped_column(ForeignKey ('user.id'))
+    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'))
 
     items: Mapped[List['OrderItemModel']] = relationship('OrderItemModel', back_populates='order') # type: ignore

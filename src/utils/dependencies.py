@@ -24,6 +24,24 @@ async def user_id_dependency(token: Annotated[str, Depends(oauth2_scheme)]) -> i
         )
     
 current_user_id = Annotated[int, Depends(user_id_dependency)]
+
+async def user_email_dependency(token: Annotated[str, Depends(oauth2_scheme)]) -> int:
+    try:
+        payload = await decode_token(token)
+        user_email = payload.get("email")
+        if not user_email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload"
+            )
+        return user_email
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+    
+current_user_email = Annotated[str, Depends(user_email_dependency)]
     
 async def get_db():
     async with DBManager(session_factory=async_session_maker) as db:
