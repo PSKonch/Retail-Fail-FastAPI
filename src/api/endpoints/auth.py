@@ -22,6 +22,7 @@ async def create_access_token(data: User, expire_delta: timedelta):
     encode = {
         'sub': data.username, 
         'id': data.id, 
+        'email': data.email
     }
     expires = datetime.now(timezone.utc) + expire_delta
     encode.update({'exp': expires})
