@@ -1,8 +1,5 @@
-from typing import Annotated
-
-from fastapi import Depends
-
-from src.db.postgres.database import async_session_maker
+from src.repositories.order import OrderRepository
+from src.repositories.order_item import OrderItemRepository
 from src.repositories.products import ProductRepository
 from src.repositories.cart import CartRepository
 from src.repositories.categories import CategoryRepository
@@ -17,6 +14,8 @@ class DBManager:
         self.product = ProductRepository(self.session)
         self.cart = CartRepository(self.session)
         self.category = CategoryRepository(self.session)
+        self.order = OrderRepository(self.session)
+        self.order_item = OrderItemRepository(self.session)
 
         return self
 

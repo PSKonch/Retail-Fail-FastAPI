@@ -4,9 +4,11 @@ from src.api.endpoints.categories import router as categories_router
 from src.api.endpoints.products import router as products_router
 from src.api.endpoints.auth import router as auth_router
 from src.api.endpoints.cart import router as cart_router
+from src.api.endpoints.orders import router as order_router
 
 app = FastAPI()
 
+app.include_router(order_router)
 app.include_router(categories_router)
 app.include_router(products_router)
 app.include_router(auth_router)
