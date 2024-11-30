@@ -5,6 +5,7 @@ from fastapi import Depends
 from src.db.postgres.database import async_session_maker
 from src.repositories.products import ProductRepository
 from src.repositories.cart import CartRepository
+from src.repositories.categories import CategoryRepository
 
 class DBManager:
     def __init__(self, session_factory):
@@ -15,6 +16,7 @@ class DBManager:
 
         self.product = ProductRepository(self.session)
         self.cart = CartRepository(self.session)
+        self.category = CategoryRepository(self.session)
 
         return self
 
