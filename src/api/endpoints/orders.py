@@ -1,25 +1,15 @@
 from fastapi import APIRouter
 
-from src.utils.dependencies import db_manager, current_user_id, current_user_email
-from src.services.email_service import notify_user_about_order
+from src.utils.decorators import exception_handler
+from src.utils.dependencies import order_service, current_user_id, current_user_email
 
-router = APIRouter(prefix='', tags=['Заказ'])
+router = APIRouter(prefix='/order', tags=['Заказ'])
 
-@router.post("cart/order")
+@router.post('', summary='Создать заказ')
+@exception_handler
 async def create_order(
-    db: db_manager,
     current_user: current_user_id,
-    current_user_email: current_user_email
+    current_user_email: current_user_email,
+    service: order_service
 ):
-    try:
-        new_order = await db.order.create_order_with_cart(user_id=current_user)
-        await db.commit()
-        await notify_user_about_order(current_user_email)
-        return {
-            "status": "ok",
-            "order_id": new_order.id,
-            "total_price": new_order.total_price,
-        }
-    except ValueError as e:
-        await db.rollback()
-        return {"status": "error", "message": str(e)}
+    return await service.create_order_with_cart(user_id=current_user, user_email=current_user_email)
