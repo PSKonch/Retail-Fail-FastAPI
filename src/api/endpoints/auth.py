@@ -7,7 +7,7 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 
 from src.models.users import UserModel
-from src.schemas.users import User, UserAdd, UserRequestAdd, UserLogin
+from src.schemas.users import User, UserRequestAdd, UserLogin
 from src.db.postgres.database import database as db
 
 router = APIRouter(prefix='/auth', tags=['Авторизация'])

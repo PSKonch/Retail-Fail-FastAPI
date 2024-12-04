@@ -18,7 +18,6 @@ async def lifespan(app: FastAPI):
     await redis_manager.connect()
     FastAPICache.init(RedisBackend(redis_manager.redis), prefix="fastapi_cache")
     
-    # Тест подключения
     try:
         await redis_manager.redis.ping()
         print("Redis connection is successful!")
@@ -28,9 +27,8 @@ async def lifespan(app: FastAPI):
     yield
     await redis_manager.close()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, title='Retail Fail API', version='0.1.11')
 
-# Регистрация роутеров
 app.include_router(categories_router)
 app.include_router(products_router)
 app.include_router(auth_router)

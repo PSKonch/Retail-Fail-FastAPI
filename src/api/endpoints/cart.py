@@ -1,11 +1,13 @@
-from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
+from fastapi_cache import FastAPICache
+from fastapi_cache.decorator import cache
 
 from src.utils.dependencies import db_manager, current_user_id
 
 router = APIRouter(prefix='', tags=['Корзина'])
 
 @router.get('/cart')
+@cache(expire=1800, namespace=lambda *args, **kwargs: f"cart:{kwargs.get('user_id')}")
 async def get_all_in_cart(
     db: db_manager,
     user_id: current_user_id
@@ -29,6 +31,7 @@ async def add_to_cart(
     try:
         await db.cart.add_or_update_cart(user_id, product_id, quantity)
         await db.commit()
+        await FastAPICache.clear(namespace=f'cart:{user_id}')
         return {'message': 'Transaction Success'}
     except Exception as e:
         await db.rollback()
@@ -48,6 +51,7 @@ async def remove_or_decrease_item(
     try:
         await db.cart.remove_or_decrease_quantity(user_id, product_id, quantity)
         await db.commit()
+        await FastAPICache.clear(namespace=f'cart:{user_id}')
         return {'message': f'Item with product_id {product_id} updated in cart'}
     except ValueError as e:
         raise HTTPException(
@@ -72,6 +76,7 @@ async def clear_cart(
     try:
         await db.cart.clear_cart(user_id)
         await db.commit()
+        await FastAPICache.clear(namespace=f'cart:{user_id}')
         return {'message': 'Cart cleared successfully'}
     except Exception as e:
         await db.rollback()
