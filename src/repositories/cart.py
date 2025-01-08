@@ -8,7 +8,7 @@ class CartRepository(BaseRepository):
     model = CartModel
     mapper = CartDataMapper
 
-    async def get_filtered(self, *filters):
+    async def get_filtered(self, *filters, **filter_by):
         query = (
             select(self.model)
             .where(*filters)
