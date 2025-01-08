@@ -1,4 +1,5 @@
 from sqlalchemy import delete, insert, select, update
+from sqlalchemy.orm import selectinload
 from src.models.cart import CartModel
 from src.repositories.base import BaseRepository
 from src.repositories.mappers.mappers import CartDataMapper
@@ -6,6 +7,15 @@ from src.repositories.mappers.mappers import CartDataMapper
 class CartRepository(BaseRepository):
     model = CartModel
     mapper = CartDataMapper
+
+    async def get_filtered(self, *filters):
+        query = (
+            select(self.model)
+            .where(*filters)
+            .options(selectinload(self.model.product))  # ✅ Исправлено!
+        )
+        result = await self.session.execute(query)
+        return result.scalars().all()
 
     async def add(self, **values): # переопределенный классический метод add
         try:

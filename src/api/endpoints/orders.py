@@ -5,7 +5,7 @@ from src.services.email_service import notify_user_about_order
 
 router = APIRouter(prefix='', tags=['Заказ'])
 
-@router.post("cart/order")
+@router.post("/cart/order")
 async def create_order(
     db: db_manager,
     current_user: current_user_id,
