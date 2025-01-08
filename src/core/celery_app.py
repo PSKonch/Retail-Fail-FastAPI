@@ -8,7 +8,8 @@ celery_app = Celery(
     "my_app", 
     broker=settings.RABBITMQ_URL,  
     backend=settings.REDIS_URL, 
-    include=["src.services.email_service"] 
+    include=["src.services.email_service",
+             "src.tasks"] 
 )
 
 celery_app.conf.update(
@@ -21,3 +22,4 @@ celery_app.conf.update(
 )
 
 import src.services.email_service
+import src.tasks

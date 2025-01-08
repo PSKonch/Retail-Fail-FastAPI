@@ -3,6 +3,8 @@ from pydantic import BaseModel
 
 from src.schemas.order_items import OrderItem
 
+# статусы указаны в src.utils.constants
+
 class Order(BaseModel):
     id: int
     user_id: int
