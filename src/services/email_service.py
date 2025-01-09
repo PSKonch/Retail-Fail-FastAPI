@@ -7,9 +7,10 @@ from email.mime.multipart import MIMEMultipart
 from celery.schedules import crontab
 
 from src.core.celery_app import celery_app
-
 from src.core.setting import settings
 from src.utils.constants import ORDER_STATUSES_TO_EMAIL
+from src.db.postgres.database import SessionLocal
+from src.models import OrderModel
 
 async def send_email_async(to_email: str, subject: str, message: str):
     email_message = MIMEMultipart()
@@ -84,3 +85,12 @@ def notify_user_about_orders_status(user_email: str, order_status: str):
     
     # Отправка email
     send_email_sync(to_email=user_email, subject=subject, message=message)
+
+@celery_app.task
+def update_order_status(order_id: int, order_status: str):
+    """Обновляет статус заказа в БД"""
+    with SessionLocal() as session:
+        order = session.query(OrderModel).filter_by(id=order_id).first()
+        if order:
+            order.status = order_status
+            session.commit()

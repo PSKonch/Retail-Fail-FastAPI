@@ -16,5 +16,5 @@ class ProductModel(Base):
     price: Mapped[int]
 
     category_id: Mapped[int] = mapped_column(ForeignKey('category.id'))
-
-    cart_items: Mapped[list['CartModel']] = relationship('CartModel', back_populates='product') # type: ignore
+    
+    cart_items = relationship("CartModel", back_populates="product")

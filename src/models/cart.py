@@ -11,6 +11,6 @@ class CartModel(Base):
     product_id: Mapped[int] = mapped_column(ForeignKey('product.id'))
     quantity: Mapped[int]
 
-    product: Mapped['ProductModel'] = relationship( #type: ignore 
+    product = relationship( 
         'ProductModel', back_populates='cart_items', lazy='joined' 
     )
