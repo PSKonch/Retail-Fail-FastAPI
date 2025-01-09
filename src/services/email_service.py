@@ -9,6 +9,7 @@ from celery.schedules import crontab
 from src.core.celery_app import celery_app
 
 from src.core.setting import settings
+from src.utils.constants import ORDER_STATUSES_TO_EMAIL
 
 async def send_email_async(to_email: str, subject: str, message: str):
     email_message = MIMEMultipart()
@@ -74,7 +75,12 @@ async def notify_user_about_order(user_email: str):
 
 
 @celery_app.task
-def notify_user_about_orders_arrival(user_email: str):
-    subject = "Ваш заказ прибыл"
-    message = "Спасибо за ожидание! Ваш заказ прибыл в точку самовывоза."
+def notify_user_about_orders_status(user_email: str, order_status: str):
+    """Отправляет email-уведомление пользователю в зависимости от статуса заказа"""
+    subject = "Обновление статуса заказа"
+    
+    # Получаем сообщение на основе статуса заказа
+    message = ORDER_STATUSES_TO_EMAIL.get(order_status, "Обновление статуса заказа")
+    
+    # Отправка email
     send_email_sync(to_email=user_email, subject=subject, message=message)

@@ -2,14 +2,13 @@ from celery import Celery
 from src.core.setting import settings  
 
 # Запуск воркера на Windows
-# celery -A src.core.celery_app worker --loglevel=info --pool=solo
+# python -m celery -A src.core.celery_app worker --loglevel=info --pool=solo
 
 celery_app = Celery(
     "my_app", 
     broker=settings.RABBITMQ_URL,  
     backend=settings.REDIS_URL, 
-    include=["src.services.email_service",
-             "src.tasks"] 
+    include=["src.services.email_service"] 
 )
 
 celery_app.conf.update(
@@ -22,4 +21,3 @@ celery_app.conf.update(
 )
 
 import src.services.email_service
-import src.tasks
