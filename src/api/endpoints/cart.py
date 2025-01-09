@@ -31,7 +31,6 @@ async def add_to_cart(
     try:
         await db.cart.add_or_update_cart(user_id, product_id, quantity)
         await db.commit()
-        await FastAPICache.clear(namespace=f'cart:{user_id}')
         return {'message': 'Transaction Success'}
     except Exception as e:
         await db.rollback()

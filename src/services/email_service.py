@@ -1,11 +1,18 @@
+import asyncio
+import smtplib
 import aiosmtplib
 from email.parser import Parser
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from celery.schedules import crontab
 
+from src.core.celery_app import celery_app
 from src.core.setting import settings
+from src.utils.constants import ORDER_STATUSES_TO_EMAIL
+from src.db.postgres.database import SessionLocal
+from src.models import OrderModel
 
-async def send_email(to_email: str, subject: str, message: str):
+async def send_email_async(to_email: str, subject: str, message: str):
     email_message = MIMEMultipart()
     email_message['From'] = settings.SMTP_USERNAME
     email_message['To'] = to_email
@@ -26,6 +33,23 @@ async def send_email(to_email: str, subject: str, message: str):
 
     except Exception as e:
         print(f'Произошла ошибка {e}')
+
+def send_email_sync(to_email: str, subject: str, message: str):
+    email_message = MIMEMultipart()
+    email_message["From"] = settings.SMTP_USERNAME
+    email_message["To"] = to_email
+    email_message["Subject"] = subject
+    email_message.attach(MIMEText(message, _subtype="plain", _charset="utf-8"))
+
+    try:
+        with smtplib.SMTP("localhost", 1025) as server:
+            server.sendmail(
+                settings.SMTP_USERNAME, to_email, email_message.as_string()
+            )
+        print(f"Сообщение доставлено по адресу {to_email}")
+
+    except Exception as e:
+        print(f"Ошибка отправки: {e}")
 
 
 def decode_email_body(encoded_message: str) -> str: 
@@ -48,4 +72,25 @@ def decode_email_body(encoded_message: str) -> str:
 async def notify_user_about_order(user_email: str):
     subject = "Ваш заказ подтверждён"
     message = "Спасибо за ваш заказ! Мы обработаем его в ближайшее время."
-    await send_email(to_email=user_email, subject=subject, message=message)
+    await send_email_async(to_email=user_email, subject=subject, message=message)
+
+
+@celery_app.task
+def notify_user_about_orders_status(user_email: str, order_status: str):
+    """Отправляет email-уведомление пользователю в зависимости от статуса заказа"""
+    subject = "Обновление статуса заказа"
+    
+    # Получаем сообщение на основе статуса заказа
+    message = ORDER_STATUSES_TO_EMAIL.get(order_status, "Обновление статуса заказа")
+    
+    # Отправка email
+    send_email_sync(to_email=user_email, subject=subject, message=message)
+
+@celery_app.task
+def update_order_status(order_id: int, order_status: str):
+    """Обновляет статус заказа в БД"""
+    with SessionLocal() as session:
+        order = session.query(OrderModel).filter_by(id=order_id).first()
+        if order:
+            order.status = order_status
+            session.commit()

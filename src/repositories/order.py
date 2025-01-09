@@ -52,3 +52,19 @@ class OrderRepository(BaseRepository):
             .where(OrderModel.user_id == user_id)
         )
         return result.scalars().all()
+    
+    async def update_order_status(self, user_id: int, order_id: int, new_status: str):
+        existing_order = await self.get_filtered(
+            OrderModel.id == order_id,
+            OrderModel.user_id == user_id
+        )
+
+        if existing_order:
+            await self.update(
+                OrderModel.id == order_id,
+                OrderModel.user_id == user_id,
+                values={"status": new_status}
+            )
+            return {"status": new_status}
+        
+        return {"error": "Order not found"}

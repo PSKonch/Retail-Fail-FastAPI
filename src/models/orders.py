@@ -4,6 +4,8 @@ from sqlalchemy import ForeignKey
 
 from src.db.postgres.database import Base
 
+# статусы указаны в src.utils.constants
+
 class OrderModel(Base):
     __tablename__ = 'order'
 
