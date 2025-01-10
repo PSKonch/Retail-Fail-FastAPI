@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     @property
     def RABBITMQ_URL(self):
         return f"pyamqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASSWORD}@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}//"
+    
+    MONGO_HOST: str
+    MONGO_PORT: int
+    MONGO_NAME: str
+
+    @property
+    def MONGO_URL(self):
+        return f"mongodb://{self.MONGO_HOST}:{self.MONGO_PORT}/{self.MONGO_NAME}"
 
     model_config = SettingsConfigDict(env_file=".env")
 

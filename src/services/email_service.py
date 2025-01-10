@@ -4,7 +4,6 @@ import aiosmtplib
 from email.parser import Parser
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from celery.schedules import crontab
 
 from src.core.celery_app import celery_app
 from src.core.setting import settings
