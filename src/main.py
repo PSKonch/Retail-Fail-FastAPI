@@ -5,6 +5,7 @@ from fastapi_cache import FastAPICache
 from fastapi.openapi.docs import get_swagger_ui_html
 import uvicorn
 
+from src.db.mongodb.manager import mongodb_manager
 from src.db.redis.manager import redis_manager
 
 from src.api.endpoints.categories import router as categories_router
@@ -15,6 +16,7 @@ from src.api.endpoints.orders import router as order_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await mongodb_manager.connect()
     await redis_manager.connect()
     FastAPICache.init(RedisBackend(redis_manager.redis), prefix="fastapi_cache")
     
@@ -25,9 +27,10 @@ async def lifespan(app: FastAPI):
         print(f"Failed to connect to Redis: {e}")
 
     yield
+    await mongodb_manager.close()
     await redis_manager.close()
 
-app = FastAPI(lifespan=lifespan, title='Retail Fail API', version='0.1.11')
+app = FastAPI(lifespan=lifespan, title='Retail Fail API', version='0.5.1')
 
 app.include_router(categories_router)
 app.include_router(products_router)
