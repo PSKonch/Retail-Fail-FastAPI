@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload, joinedload
 from src.models.cart import CartModel
 from src.models.order_items import OrderItemModel
@@ -52,6 +52,17 @@ class OrderRepository(BaseRepository):
             .where(OrderModel.user_id == user_id, OrderModel.id == order_id)
         )
         return result.scalars().all()
+    
+    async def get_one_or_none(self, *filters, **filter_by):
+        query = (select(self.model)
+            .options(selectinload(self.model.items).selectinload(OrderItemModel.product))
+            .filter(*filters).filter_by(**filter_by))
+        result = await self.session.execute(query)
+        return result.scalars().first() if result else None # Возвращает первый объект или None
+    
+    async def update(self, filters: dict, values: dict):
+        query = update(self.model).where(*[getattr(self.model, key) == value for key, value in filters.items()]).values(**values)
+        await self.session.execute(query)
     
     async def update_order_status(self, user_id: int, order_id: int, new_status: str):
         existing_order = await self.get_filtered(

@@ -14,7 +14,7 @@ celery_app = Celery(
     broker=settings.RABBITMQ_URL,  
     backend=settings.REDIS_URL, 
     include=[
-        "src.services.email_service",
+        "src.tasks.notifications",
         "src.tasks.orders"] 
 )
 
