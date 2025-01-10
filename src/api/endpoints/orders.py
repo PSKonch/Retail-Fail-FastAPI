@@ -5,6 +5,21 @@ from src.services.email_service import notify_user_about_orders_status, update_o
 
 router = APIRouter(prefix='', tags=['Заказ'])
 
+@router.get("/orders")
+async def get_all_orders(
+    db: db_manager,
+    user_id: current_user_id,   
+):
+    return await db.order.get_filtered(user_id=user_id)
+
+@router.get('/order/{order_id}')
+async def get_order_by_order_id(
+    db: db_manager,
+    user_id: current_user_id,
+    order_id: int
+):
+    return await db.order.get_filtered(user_id=user_id, order_id=order_id)
+
 @router.post("/cart/order")
 async def create_order(
     db: db_manager,
@@ -19,11 +34,11 @@ async def create_order(
         update_order_status.apply_async(args=[new_order.id, "pending"], countdown=1)
         notify_user_about_orders_status.apply_async(args=[current_user_email, "pending"], countdown=1)
 
-        update_order_status.apply_async(args=[new_order.id, "arrived"], countdown=5)
-        notify_user_about_orders_status.apply_async(args=[current_user_email, "arrived"], countdown=5)
+        update_order_status.apply_async(args=[new_order.id, "arrived"], countdown=15)
+        notify_user_about_orders_status.apply_async(args=[current_user_email, "arrived"], countdown=15)
 
-        update_order_status.apply_async(args=[new_order.id, "got"], countdown=10)
-        notify_user_about_orders_status.apply_async(args=[current_user_email, "got"], countdown=10)
+        update_order_status.apply_async(args=[new_order.id, "got"], countdown=30)
+        notify_user_about_orders_status.apply_async(args=[current_user_email, "got"], countdown=30)
 
         return {"status": "ok", "order_id": new_order.id, "total_price": new_order.total_price}
     

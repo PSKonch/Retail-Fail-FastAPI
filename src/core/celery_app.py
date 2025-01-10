@@ -3,6 +3,8 @@ from src.core.setting import settings
 
 # Запуск воркера на Windows
 # python -m celery -A src.core.celery_app worker --loglevel=info --pool=solo
+# Запуск мониторинга
+# python -m celery -A src.core.celery_app flower
 
 celery_app = Celery(
     "my_app", 

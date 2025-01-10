@@ -45,11 +45,11 @@ class OrderRepository(BaseRepository):
         await CartRepository(self.session).clear_cart(user_id=user_id)
         return new_order
     
-    async def get_filtered(self, user_id: int):
+    async def get_filtered(self, user_id: int | None = None, order_id: int | None = None):
         result = await self.session.execute(
             select(OrderModel)
             .options(selectinload(OrderModel.items).selectinload(OrderItemModel.product))  # Загружаем связанные данные
-            .where(OrderModel.user_id == user_id)
+            .where(OrderModel.user_id == user_id, OrderModel.id == order_id)
         )
         return result.scalars().all()
     
