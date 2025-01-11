@@ -1,7 +1,10 @@
+from typing import List
 from fastapi import APIRouter
+from sqlalchemy import select
 
+from src.models.users import UserModel
+from src.tasks.notifications import notify_user_about_orders_status
 from src.utils.dependencies import db_manager, current_user_id, current_user_email
-from src.services.email_service import notify_user_about_orders_status, update_order_status
 
 router = APIRouter(prefix='', tags=['Заказ'])
 
@@ -30,18 +33,117 @@ async def create_order(
         new_order = await db.order.create_order_with_cart(user_id=current_user)
         await db.commit()
 
-        # Обновление статуса в БД + отправка уведомлений
-        update_order_status.apply_async(args=[new_order.id, "pending"], countdown=1)
-        notify_user_about_orders_status.apply_async(args=[current_user_email, "pending"], countdown=1)
-
-        update_order_status.apply_async(args=[new_order.id, "arrived"], countdown=15)
-        notify_user_about_orders_status.apply_async(args=[current_user_email, "arrived"], countdown=15)
-
-        update_order_status.apply_async(args=[new_order.id, "got"], countdown=30)
-        notify_user_about_orders_status.apply_async(args=[current_user_email, "got"], countdown=30)
+        # Отправка уведомлений
+        notify_user_about_orders_status.apply_async(args=[current_user_email, "pending", new_order.id])
 
         return {"status": "ok", "order_id": new_order.id, "total_price": new_order.total_price}
     
     except ValueError as e:
+        await db.rollback()
+        return {"status": "error", "message": str(e)}
+    
+@router.delete("/order/{order_id}/cancel")
+async def cancel_order(
+    db: db_manager, 
+    current_user_id: current_user_id,
+    current_user_email: current_user_email,
+    order_id: int
+):
+    try: 
+        order = await db.order.get_one_or_none(user_id=current_user_id, id=order_id)
+        if not order:
+            return {"status": "error", "message": "Заказ не найден."}
+        if order.status == "got":
+            return {"status": "error", "message": "Этот заказ уже получен и не может быть отменен."}
+
+        await db.order.update(
+            filters={"id": order_id, "user_id": current_user_id},
+            values={"status": "canceled"}
+        )
+        await db.commit()      
+
+        notify_user_about_orders_status.apply_async(args=[current_user_email, "canceled", order.id])
+
+        return {"status": "ok"}
+
+    except ValueError as e:
+        await db.rollback()
+        return {"status": "error", "message": str(e)}
+    
+
+@router.post("/order/{order_id}/to_user/{user_id}")
+async def give_an_order_to_user(
+    db: db_manager,
+    employee_id: current_user_id,
+    user_id: int,
+    order_id: int
+):
+    """Эндпоинт сотрудника постамата, пользователь сообщает свой id (сменить на имя/почту)
+    и номер заказа. После чего сотрудник вводит данные в запрос и меняет статус заказа
+    """
+    try:
+        employee = await db.user.get_one_or_none(id=employee_id)
+        if not employee or employee.role not in ["super_user", "supplier"]:
+            return {"status": "error", "message": "Ошибка доступа"}
+        
+        user = await db.user.get_one_or_none(id=user_id)
+        if not user:
+            return {"status": "Пользователь не существует"}
+
+        order = await db.order.get_one_or_none(user_id=user_id, id=order_id)
+        if (not order) or (order.status != "arrived"):
+            return {"status": "error", "message": "Заказ не найден или не поступил"}
+
+        await db.order.update(
+            filters={"user_id": user_id, "id": order_id},
+            values={"status": "got"}
+        )   
+        await db.commit()
+        
+        notify_user_about_orders_status.apply_async(args=[user.email, "got", order.id])
+
+        return {"status": "ok"}
+
+    except Exception as e:
+        await db.rollback()
+        return {"status": "error", "message": str(e)}
+
+
+@router.post("/orders/delivery")
+async def delivery_an_order_to_post(
+    db: db_manager,
+    supplier_id: current_user_id,
+    order_ids: List[int]
+):
+    try:
+        supplier = await db.user.get_one_or_none(id=supplier_id)
+        if not supplier or supplier.role not in ["super_user", "supplier"]:
+            return {"status": "error", "message": "Ошибка доступа"}
+
+        arrived_orders = []
+
+        # Обновляем заказы, которые можно перевести в статус "arrived"
+        for order_id in order_ids:
+            order = await db.order.get_one_or_none(id=order_id)
+            if not order:
+                return {"status": "error", "message": f"Заказ {order_id} не найден"}
+
+            await db.order.update(
+                filters={"id": order_id},
+                values={"status": "arrived"}
+            )
+            arrived_orders.append(order)
+
+        await db.commit()
+
+        # Отправляем уведомления пользователям о статусе заказов
+        for order in arrived_orders:
+            user = await db.user.get_one_or_none(id=order.user_id)
+            if user:
+                notify_user_about_orders_status.apply_async(args=[user.email, "arrived", order.id])
+
+        return {"status": "ok"}
+
+    except Exception as e:
         await db.rollback()
         return {"status": "error", "message": str(e)}

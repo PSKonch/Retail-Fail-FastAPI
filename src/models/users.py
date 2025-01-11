@@ -13,3 +13,4 @@ class UserModel(Base):
     email: Mapped[str] = mapped_column(unique=True)
     hashed_password: Mapped[str]
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    role: Mapped[str] = mapped_column(nullable=True)

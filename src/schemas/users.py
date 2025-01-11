@@ -17,6 +17,7 @@ class UserAdd(BaseModel):
 class User(UserAdd):
     id: int
     is_active: bool
+    role: str | None = None
  
 class UserLogin(BaseModel):
     username: str

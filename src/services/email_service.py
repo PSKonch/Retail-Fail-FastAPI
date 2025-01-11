@@ -66,30 +66,3 @@ def decode_email_body(encoded_message: str) -> str:
         return "Не удалось найти текстовую часть письма."
     except Exception as e:
         return f"Ошибка расшифровки: {e}"
-
-
-async def notify_user_about_order(user_email: str):
-    subject = "Ваш заказ подтверждён"
-    message = "Спасибо за ваш заказ! Мы обработаем его в ближайшее время."
-    await send_email_async(to_email=user_email, subject=subject, message=message)
-
-
-@celery_app.task
-def notify_user_about_orders_status(user_email: str, order_status: str):
-    """Отправляет email-уведомление пользователю в зависимости от статуса заказа"""
-    subject = "Обновление статуса заказа"
-    
-    # Получаем сообщение на основе статуса заказа
-    message = ORDER_STATUSES_TO_EMAIL.get(order_status, "Обновление статуса заказа")
-    
-    # Отправка email
-    send_email_sync(to_email=user_email, subject=subject, message=message)
-
-@celery_app.task
-def update_order_status(order_id: int, order_status: str):
-    """Обновляет статус заказа в БД"""
-    with SessionLocal() as session:
-        order = session.query(OrderModel).filter_by(id=order_id).first()
-        if order:
-            order.status = order_status
-            session.commit()
