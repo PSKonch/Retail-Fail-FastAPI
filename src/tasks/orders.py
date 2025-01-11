@@ -60,13 +60,3 @@ def migrate_old_orders():
 
         # Закрываем соединение с MongoDB
         mongodb_manager.close_sync()
-
-
-@celery_app.task
-def update_order_status(order_id: int, order_status: str):
-    """Обновляет статус заказа в БД"""
-    with SessionLocal() as session:
-        order = session.query(OrderModel).filter_by(id=order_id).first()
-        if order and order.status not in ["canceled", "got"]:
-            session.query(OrderModel).filter_by(id=order_id).update({"status": order_status})
-            session.commit()

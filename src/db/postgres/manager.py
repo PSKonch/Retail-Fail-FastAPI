@@ -3,6 +3,7 @@ from src.repositories.order_item import OrderItemRepository
 from src.repositories.products import ProductRepository
 from src.repositories.cart import CartRepository
 from src.repositories.categories import CategoryRepository
+from src.repositories.users import UserRepository
 
 class DBManager:
     def __init__(self, session_factory):
@@ -16,6 +17,7 @@ class DBManager:
         self.category = CategoryRepository(self.session)
         self.order = OrderRepository(self.session)
         self.order_item = OrderItemRepository(self.session)
+        self.user = UserRepository(self.session)
 
         return self
 

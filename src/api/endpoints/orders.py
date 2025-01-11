@@ -4,7 +4,6 @@ from sqlalchemy import select
 
 from src.models.users import UserModel
 from src.tasks.notifications import notify_user_about_orders_status
-from src.tasks.orders import update_order_status
 from src.utils.dependencies import db_manager, current_user_id, current_user_email
 
 router = APIRouter(prefix='', tags=['Заказ'])
@@ -34,8 +33,7 @@ async def create_order(
         new_order = await db.order.create_order_with_cart(user_id=current_user)
         await db.commit()
 
-        # Обновление статуса в БД + отправка уведомлений
-        update_order_status.apply_async(args=[new_order.id, "pending"])
+        # Отправка уведомлений
         notify_user_about_orders_status.apply_async(args=[current_user_email, "pending", new_order.id])
 
         return {"status": "ok", "order_id": new_order.id, "total_price": new_order.total_price}
@@ -84,13 +82,11 @@ async def give_an_order_to_user(
     и номер заказа. После чего сотрудник вводит данные в запрос и меняет статус заказа
     """
     try:
-        # Todo: Проверить является ли employee_id айдишником сотрудника. Проверка доступа
-        # Временно использую в качестве сотрудника человека с id 3
-        if employee_id != 3:
+        employee = await db.user.get_one_or_none(id=employee_id)
+        if not employee or employee.role not in ["super_user", "supplier"]:
             return {"status": "error", "message": "Ошибка доступа"}
         
-        result = await db.session.execute(select(UserModel).where(UserModel.id == user_id))
-        user = result.scalars().first()
+        user = await db.user.get_one_or_none(id=user_id)
         if not user:
             return {"status": "Пользователь не существует"}
 
@@ -108,24 +104,24 @@ async def give_an_order_to_user(
 
         return {"status": "ok"}
 
-    except ValueError as e:
+    except Exception as e:
         await db.rollback()
         return {"status": "error", "message": str(e)}
-    
+
+
 @router.post("/orders/delivery")
 async def delivery_an_order_to_post(
     db: db_manager,
-    user_id: current_user_id,
+    supplier_id: current_user_id,
     order_ids: List[int]
 ):
     try:
-        # Todo: Проверить является ли user_id айдишником перевозчика. Проверка доступа
-        # Временно использую в качестве сотрудника человека с id 3
-        if user_id != 3:
+        supplier = await db.user.get_one_or_none(id=supplier_id)
+        if not supplier or supplier.role not in ["super_user", "supplier"]:
             return {"status": "error", "message": "Ошибка доступа"}
-        
+
         arrived_orders = []
-        
+
         # Обновляем заказы, которые можно перевести в статус "arrived"
         for order_id in order_ids:
             order = await db.order.get_one_or_none(id=order_id)
@@ -142,13 +138,12 @@ async def delivery_an_order_to_post(
 
         # Отправляем уведомления пользователям о статусе заказов
         for order in arrived_orders:
-            result = await db.session.execute(select(UserModel).where(UserModel.id == order.user_id))
-            user = result.scalars().first()
+            user = await db.user.get_one_or_none(id=order.user_id)
             if user:
                 notify_user_about_orders_status.apply_async(args=[user.email, "arrived", order.id])
 
         return {"status": "ok"}
 
-    except ValueError as e:
+    except Exception as e:
         await db.rollback()
         return {"status": "error", "message": str(e)}
