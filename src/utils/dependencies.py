@@ -3,9 +3,10 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from jose import JWTError
 
-from src.api.endpoints.auth import decode_token, oauth2_scheme
+from src.api.endpoints.auth import oauth2_scheme
 from src.db.postgres.manager import DBManager
 from src.db.postgres.database import async_session_maker
+from src.services.auth_service import decode_token
 
 async def user_id_dependency(token: Annotated[str, Depends(oauth2_scheme)]) -> int:
     try:

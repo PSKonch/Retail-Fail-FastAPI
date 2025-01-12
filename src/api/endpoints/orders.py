@@ -33,7 +33,7 @@ async def create_order(
         new_order = await db.order.create_order_with_cart(user_id=current_user)
         await db.commit()
 
-        # Отправка уведомлений
+        # Отправка уведомлений на почту
         notify_user_about_orders_status.apply_async(args=[current_user_email, "pending", new_order.id])
 
         return {"status": "ok", "order_id": new_order.id, "total_price": new_order.total_price}
