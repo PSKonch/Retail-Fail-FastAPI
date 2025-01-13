@@ -1,82 +1,50 @@
-from fastapi import APIRouter, HTTPException
-from fastapi_cache import FastAPICache
+from typing import Annotated
+from fastapi import APIRouter, Depends
 from fastapi_cache.decorator import cache
 
-from src.utils.dependencies import db_manager, current_user_id
+from src.db.postgres.manager import DBManager
+from src.services.cart_service import CartService
+from src.utils.dependencies import current_user_id
+from src.db.postgres.database import async_session_maker 
 
 router = APIRouter(prefix='', tags=['Корзина'])
 
+async def get_cart_service():
+    async with DBManager(async_session_maker) as db:
+        yield CartService(db)
+
 @router.get('/cart')
-@cache(expire=1800, namespace=lambda *args, **kwargs: f"cart:{kwargs.get('user_id')}")
+@cache(expire=1800, namespace=lambda user_id: f"cart:{user_id}")
 async def get_all_in_cart(
-    db: db_manager,
-    user_id: current_user_id
+    user_id: current_user_id,
+    cart_service: Annotated[CartService, Depends(get_cart_service)]
 ):
-    try:
-        return await db.cart.get_filtered(user_id=user_id)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, 
-            detail={'message': 'Transaction Failed', 'error': str(e)}
-        )
+    return await cart_service.get_all_items_in_cart(user_id)
 
 
 @router.post('/products', description='Добавление продуктов в корзину')
 async def add_to_cart(
-    db: db_manager, 
+    cart_service: Annotated[CartService, Depends(get_cart_service)], 
     product_id: int, 
     user_id: current_user_id, 
     quantity: int
 ):
-    try:
-        await db.cart.add_or_update_cart(user_id, product_id, quantity)
-        await db.commit()
-        return {'message': 'Transaction Success'}
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=500, 
-            detail={'message': 'Transaction Failed', 'error': str(e)}
-        )
+    return await cart_service.add_to_cart(user_id, product_id, quantity)
 
 
 @router.delete('/cart')
 async def remove_or_decrease_item(
-    db: db_manager, 
+    cart_service: Annotated[CartService, Depends(get_cart_service)], 
     product_id: int, 
     user_id: current_user_id, 
     quantity: int = 1
 ):
-    try:
-        await db.cart.remove_or_decrease_quantity(user_id, product_id, quantity)
-        await db.commit()
-        await FastAPICache.clear(namespace=f'cart:{user_id}')
-        return {'message': f'Item with product_id {product_id} updated in cart'}
-    except ValueError as e:
-        raise HTTPException(
-            status_code=404, 
-            detail=str(e)
-        )
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail={
-                'message': f'Failed to update item {product_id} in cart', 
-                'error': str(e)
-            }
-        )
-    
+    return await cart_service.remove_or_decrease_item(user_id, product_id, quantity)
+
+
 @router.delete('/cart/clear')
 async def clear_cart(
-    db: db_manager, 
+    cart_service: Annotated[CartService, Depends(get_cart_service)], 
     user_id: current_user_id
 ):
-    try:
-        await db.cart.clear_cart(user_id)
-        await db.commit()
-        await FastAPICache.clear(namespace=f'cart:{user_id}')
-        return {'message': 'Cart cleared successfully'}
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail={'message': 'Failed to clear cart', 'error': str(e)})
+    return await cart_service.clear_cart(user_id)

@@ -1,8 +1,6 @@
 from typing import List
 from fastapi import APIRouter
-from sqlalchemy import select
 
-from src.models.users import UserModel
 from src.tasks.notifications import notify_user_about_orders_status
 from src.utils.dependencies import db_manager, current_user_id, current_user_email
 
