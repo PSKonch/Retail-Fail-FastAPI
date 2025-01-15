@@ -1,5 +1,5 @@
 from sqlalchemy import delete, insert, select, update
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from src.models.cart import CartModel
 from src.repositories.base import BaseRepository
 from src.repositories.mappers.mappers import CartDataMapper
@@ -11,8 +11,8 @@ class CartRepository(BaseRepository):
     async def get_filtered(self, *filters, **filter_by):
         query = (
             select(self.model)
-            .where(*filters)
-            .options(selectinload(self.model.product))  # ✅ Исправлено!
+            .where(*filters, *[getattr(self.model, key) == value for key, value in filter_by.items()])
+            .options(joinedload(self.model.product))  # Проверяем подгрузку товара
         )
         result = await self.session.execute(query)
         return result.scalars().all()
