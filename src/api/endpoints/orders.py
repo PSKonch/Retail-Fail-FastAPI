@@ -1,147 +1,70 @@
-from typing import List
-from fastapi import APIRouter
+from typing import Annotated, List
+from fastapi import APIRouter, Depends
+from fastapi_cache.decorator import cache
 
-from src.tasks.notifications import notify_user_about_orders_status
-from src.utils.dependencies import db_manager, current_user_id, current_user_email
+from src.db.postgres.manager import DBManager
+from src.services.order_service import OrderService
+from src.utils.dependencies import current_user_id, current_user_email
+from src.db.postgres.database import async_session_maker
 
-router = APIRouter(prefix='', tags=['Заказ'])
+router = APIRouter(prefix='', tags=['Заказы'])
 
-@router.get("/orders")
+async def get_order_service():
+    async with DBManager(async_session_maker) as db:
+        yield OrderService(db)
+
+
+@router.get('/orders')
+@cache(expire=1800, namespace=lambda user_id: f"orders:{user_id}")
 async def get_all_orders(
-    db: db_manager,
-    user_id: current_user_id,   
+    user_id: current_user_id,
+    order_service: Annotated[OrderService, Depends(get_order_service)]
 ):
-    return await db.order.get_filtered(user_id=user_id)
+    return await order_service.get_all_orders(user_id)
+
 
 @router.get('/order/{order_id}')
-async def get_order_by_order_id(
-    db: db_manager,
+async def get_order_by_id(
+    order_id: int,
     user_id: current_user_id,
-    order_id: int
+    order_service: Annotated[OrderService, Depends(get_order_service)]
 ):
-    return await db.order.get_filtered(user_id=user_id, order_id=order_id)
+    return await order_service.get_order_by_id(user_id, order_id)
 
-@router.post("/cart/order")
+
+@router.post('/cart/order', description="Создание заказа на основе корзины")
 async def create_order(
-    db: db_manager,
-    current_user: current_user_id,
-    current_user_email: current_user_email
+    user_id: current_user_id,
+    user_email: current_user_email,
+    order_service: Annotated[OrderService, Depends(get_order_service)]
 ):
-    try:
-        new_order = await db.order.create_order_with_cart(user_id=current_user)
-        await db.commit()
+    return await order_service.create_order(user_id, user_email)
 
-        # Отправка уведомлений на почту
-        notify_user_about_orders_status.apply_async(args=[current_user_email, "pending", new_order.id])
 
-        return {"status": "ok", "order_id": new_order.id, "total_price": new_order.total_price}
-    
-    except ValueError as e:
-        await db.rollback()
-        return {"status": "error", "message": str(e)}
-    
-@router.delete("/order/{order_id}/cancel")
+@router.delete('/order/{order_id}/cancel', description="Отмена заказа")
 async def cancel_order(
-    db: db_manager, 
-    current_user_id: current_user_id,
-    current_user_email: current_user_email,
-    order_id: int
+    order_id: int,
+    user_id: current_user_id,
+    user_email: current_user_email,
+    order_service: Annotated[OrderService, Depends(get_order_service)]
 ):
-    try: 
-        order = await db.order.get_one_or_none(user_id=current_user_id, id=order_id)
-        if not order:
-            return {"status": "error", "message": "Заказ не найден."}
-        if order.status == "got":
-            return {"status": "error", "message": "Этот заказ уже получен и не может быть отменен."}
+    return await order_service.cancel_order(user_id, user_email, order_id)
 
-        await db.order.update(
-            filters={"id": order_id, "user_id": current_user_id},
-            values={"status": "canceled"}
-        )
-        await db.commit()      
 
-        notify_user_about_orders_status.apply_async(args=[current_user_email, "canceled", order.id])
-
-        return {"status": "ok"}
-
-    except ValueError as e:
-        await db.rollback()
-        return {"status": "error", "message": str(e)}
-    
-
-@router.post("/order/{order_id}/to_user/{user_id}")
+@router.post('/order/{order_id}/to_user/{user_id}', description="Выдача заказа пользователю")
 async def give_an_order_to_user(
-    db: db_manager,
-    employee_id: current_user_id,
+    order_id: int,
     user_id: int,
-    order_id: int
+    employee_id: current_user_id,
+    order_service: Annotated[OrderService, Depends(get_order_service)]
 ):
-    """Эндпоинт сотрудника постамата, пользователь сообщает свой id (сменить на имя/почту)
-    и номер заказа. После чего сотрудник вводит данные в запрос и меняет статус заказа
-    """
-    try:
-        employee = await db.user.get_one_or_none(id=employee_id)
-        if not employee or employee.role not in ["super_user", "supplier"]:
-            return {"status": "error", "message": "Ошибка доступа"}
-        
-        user = await db.user.get_one_or_none(id=user_id)
-        if not user:
-            return {"status": "Пользователь не существует"}
-
-        order = await db.order.get_one_or_none(user_id=user_id, id=order_id)
-        if (not order) or (order.status != "arrived"):
-            return {"status": "error", "message": "Заказ не найден или не поступил"}
-
-        await db.order.update(
-            filters={"user_id": user_id, "id": order_id},
-            values={"status": "got"}
-        )   
-        await db.commit()
-        
-        notify_user_about_orders_status.apply_async(args=[user.email, "got", order.id])
-
-        return {"status": "ok"}
-
-    except Exception as e:
-        await db.rollback()
-        return {"status": "error", "message": str(e)}
+    return await order_service.give_order_to_user(employee_id, user_id, order_id)
 
 
-@router.post("/orders/delivery")
-async def delivery_an_order_to_post(
-    db: db_manager,
+@router.post('/orders/delivery', description="Доставка заказов в постамат")
+async def deliver_orders_to_post(
+    order_ids: List[int],
     supplier_id: current_user_id,
-    order_ids: List[int]
+    order_service: Annotated[OrderService, Depends(get_order_service)]
 ):
-    try:
-        supplier = await db.user.get_one_or_none(id=supplier_id)
-        if not supplier or supplier.role not in ["super_user", "supplier"]:
-            return {"status": "error", "message": "Ошибка доступа"}
-
-        arrived_orders = []
-
-        # Обновляем заказы, которые можно перевести в статус "arrived"
-        for order_id in order_ids:
-            order = await db.order.get_one_or_none(id=order_id)
-            if not order:
-                return {"status": "error", "message": f"Заказ {order_id} не найден"}
-
-            await db.order.update(
-                filters={"id": order_id},
-                values={"status": "arrived"}
-            )
-            arrived_orders.append(order)
-
-        await db.commit()
-
-        # Отправляем уведомления пользователям о статусе заказов
-        for order in arrived_orders:
-            user = await db.user.get_one_or_none(id=order.user_id)
-            if user:
-                notify_user_about_orders_status.apply_async(args=[user.email, "arrived", order.id])
-
-        return {"status": "ok"}
-
-    except Exception as e:
-        await db.rollback()
-        return {"status": "error", "message": str(e)}
+    return await order_service.deliver_orders_to_post(supplier_id, order_ids)

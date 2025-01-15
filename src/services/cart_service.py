@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 from fastapi_cache import FastAPICache
+
 from src.db.postgres.manager import DBManager
 
 
