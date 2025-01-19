@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: retail-fail-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - mongodb
+      - rabbitmq
+      - celery
+      - flower
+    volumes:
+      - .:app
+    command: ./entrypoint.sh
+
+  postgres:
+    image: postgres:15
+    container_name: postgres-retail
+    environment:
+      POSTGRES_DB: ${POSTGRES_NAME} 
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:alpine
+    container_name: redis-retail
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb-retail
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_NAME}
+    ports:
+      - "${MONGO_PORT}:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-retail
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "15672:15672"  # Management консоль
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
