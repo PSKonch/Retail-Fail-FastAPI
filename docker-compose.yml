@@ -15,6 +15,7 @@ services:
       - redis
       - mongodb
       - rabbitmq
+      - mailhog
     volumes:
       - .:/app
 
@@ -26,7 +27,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -55,10 +56,49 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "${RABBITMQ_PORT}:5672"
+      - "5673:5672"
       - "15672:15672"  # Management консоль
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: celery-worker
+    env_file:
+      - .env
+    command: celery -A src.core.celery_app worker --loglevel=info
+    depends_on:
+      - app
+      - redis
+      - rabbitmq
+      - mailhog
+    volumes:
+      - .:/app
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: celery-beat
+    env_file:
+      - .env
+    command: celery -A src.core.celery_app beat --loglevel=info
+    depends_on:
+      - app
+      - redis
+      - rabbitmq
+      - mailhog
+    volumes:
+      - .:/app
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
 
 volumes:
   postgres_data:
