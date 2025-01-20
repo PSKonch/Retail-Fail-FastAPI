@@ -4,7 +4,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
     container_name: retail-fail-api
     env_file:
       - .env
@@ -15,11 +15,8 @@ services:
       - redis
       - mongodb
       - rabbitmq
-      - celery
-      - flower
     volumes:
-      - .:app
-    command: ./entrypoint.sh
+      - .:/app
 
   postgres:
     image: postgres:15
@@ -62,3 +59,9 @@ services:
       - "15672:15672"  # Management консоль
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  postgres_data:
+  redis_data:
+  mongodb_data:
+  rabbitmq_data:
