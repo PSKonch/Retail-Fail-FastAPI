@@ -5,11 +5,7 @@ from email.parser import Parser
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from src.core.celery_app import celery_app
 from src.core.setting import settings
-from src.utils.constants import ORDER_STATUSES_TO_EMAIL
-from src.db.postgres.database import SessionLocal
-from src.models import OrderModel
 
 async def send_email_async(to_email: str, subject: str, message: str):
     email_message = MIMEMultipart()
@@ -21,8 +17,8 @@ async def send_email_async(to_email: str, subject: str, message: str):
     try:
         await aiosmtplib.send(
             email_message,
-            hostname="localhost",
-            port=1025,
+            hostname=settings.SMTP_HOST,
+            port=settings.SMTP_PORT,
         )
         print(f'Сообщение доставлено по адресу {to_email}')
 
@@ -41,7 +37,7 @@ def send_email_sync(to_email: str, subject: str, message: str):
     email_message.attach(MIMEText(message, _subtype="plain", _charset="utf-8"))
 
     try:
-        with smtplib.SMTP("localhost", 1025) as server:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             server.sendmail(
                 settings.SMTP_USERNAME, to_email, email_message.as_string()
             )
