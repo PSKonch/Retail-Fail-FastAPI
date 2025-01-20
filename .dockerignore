@@ -1,0 +1,32 @@
+# Виртуальное окружение
+venv/
+
+# Временные файлы
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+*.DS_Store
+*.idea/
+.vscode/
+*.coverage
+.coverage.*
+
+# Файлы конфигурации
+*.env
+*.ini
+*.conf
+celerybeat-schedule
+
+# Файлы конфигурации контейнера
+docker-compose.yml
+Dockerfile
+entrypoint.sh
+
+# Текстовые файлы и медиа
+README.md
