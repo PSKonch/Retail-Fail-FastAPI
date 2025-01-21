@@ -1,6 +1,5 @@
 from typing import Annotated, List
 from fastapi import APIRouter, Depends
-from fastapi_cache.decorator import cache
 
 from src.db.postgres.manager import DBManager
 from src.services.order_service import OrderService
@@ -15,13 +14,26 @@ async def get_order_service():
 
 
 @router.get('/orders')
-@cache(expire=1800, namespace=lambda user_id: f"orders:{user_id}")
-async def get_all_orders(
+async def get_all_orders_by_user(
     user_id: current_user_id,
     order_service: Annotated[OrderService, Depends(get_order_service)]
 ):
     return await order_service.get_all_orders(user_id)
 
+@router.get('/last_order')
+async def get_last_order(
+    user_id: current_user_id,
+    order_service: Annotated[OrderService, Depends(get_order_service)]
+):
+    return await order_service.get_last_order(user_id)
+
+@router.post('/reorder')
+async def reorder_last_order(
+    user_id: current_user_id,
+    user_email: current_user_email,
+    order_service: Annotated[OrderService, Depends(get_order_service)]
+):
+    return await order_service.reorder_last_order(user_id, user_email)
 
 @router.get('/order/{order_id}')
 async def get_order_by_id(

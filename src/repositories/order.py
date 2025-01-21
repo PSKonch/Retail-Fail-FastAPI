@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import insert, select, update
 from sqlalchemy.orm import selectinload, joinedload
 from src.models.cart import CartModel
 from src.models.order_items import OrderItemModel
@@ -45,13 +45,48 @@ class OrderRepository(BaseRepository):
         await CartRepository(self.session).clear_cart(user_id=user_id)
         return new_order
     
-    async def get_filtered(self, user_id: int | None = None, order_id: int | None = None):
+    async def get_orders_by_user(self, **filter_by):
         result = await self.session.execute(
             select(OrderModel)
             .options(selectinload(OrderModel.items).selectinload(OrderItemModel.product))  # Загружаем связанные данные
-            .where(OrderModel.user_id == user_id, OrderModel.id == order_id)
+            .filter_by(**filter_by)
         )
         return result.scalars().all()
+    
+    async def reorder_last_order(self, user_id: int):
+        # Получаем последний заказ
+        query = (
+            select(self.model)
+            .options(selectinload(self.model.items))
+            .where(self.model.user_id == user_id)
+            .order_by(self.model.id.desc())
+        )
+        result = await self.session.execute(query)
+        last_order = result.scalars().first()
+
+        if not last_order:
+            raise ValueError("Заказов не было")
+
+        # Создаем новый заказ на основе старого
+        new_order = self.model(
+            user_id=last_order.user_id,
+            status="pending",
+            total_price=last_order.total_price,
+        )
+        self.session.add(new_order)
+        await self.session.flush()
+
+        new_order_items = [
+            OrderItemModel(
+                order_id=new_order.id,
+                quantity=item.quantity,
+                price=item.price,
+                product_id=item.product_id
+            )
+            for item in last_order.items
+        ]
+        self.session.add_all(new_order_items)
+        return new_order
     
     async def get_one_or_none(self, *filters, **filter_by):
         query = (select(self.model)

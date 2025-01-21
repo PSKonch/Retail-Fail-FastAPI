@@ -9,16 +9,17 @@ class OrderService:
         self.db_manager = db_manager
         self.order_repo = db_manager.order
         self.user_repo = db_manager.user
+        self.cart_repo = db_manager.cart
 
     async def get_all_orders(self, user_id: int):
         try:
-            return await self.order_repo.get_filtered(user_id=user_id)
+            return await self.order_repo.get_orders_by_user(user_id)
         except Exception as e:
             raise HTTPException(status_code=500, detail={'message': 'Failed to fetch orders', 'error': str(e)})
 
     async def get_order_by_id(self, user_id: int, order_id: int):
         try:
-            return await self.order_repo.get_filtered(user_id=user_id, order_id=order_id)
+            return await self.order_repo.get_one_or_none(user_id=user_id, id=order_id)
         except Exception as e:
             raise HTTPException(status_code=500, detail={'message': 'Failed to fetch order', 'error': str(e)})
 
@@ -114,3 +115,17 @@ class OrderService:
         except Exception as e:
             await self.db_manager.rollback()
             raise HTTPException(status_code=500, detail={'message': 'Failed to deliver orders', 'error': str(e)})
+        
+    async def get_last_order(self, user_id: int):
+        order = await self.order_repo.get_orders_by_user(user_id=user_id)
+        return order[-1]
+    
+    async def reorder_last_order(self, user_id: int, user_email: str):
+        try:
+            new_order = await self.order_repo.reorder_last_order(user_id)
+            await self.db_manager.commit()
+            notify_user_about_orders_status.apply_async(args=[user_email, "pending", new_order.id])
+            return {"status": "ok"}
+        except Exception as e:
+            await self.db_manager.rollback()
+            raise HTTPException(status_code=500, detail={'message': 'Reorder attempt failed', 'error': str(e)})
