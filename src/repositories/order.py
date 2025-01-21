@@ -64,18 +64,29 @@ class OrderRepository(BaseRepository):
         result = await self.session.execute(query)
         last_order = result.scalars().first()
 
-        # Добавляем товары из последнего заказа в корзину
-        for item in last_order.items:
-            reorder_query = insert(CartModel).values(
-                user_id=user_id,
-                product_id=item.product_id,
-                quantity=item.quantity
+        if not last_order:
+            raise ValueError("Заказов не было")
+
+        # Создаем новый заказ на основе старого
+        new_order = self.model(
+            user_id=last_order.user_id,
+            status="pending",
+            total_price=last_order.total_price,
+        )
+        self.session.add(new_order)
+        await self.session.flush()
+
+        new_order_items = [
+            OrderItemModel(
+                order_id=new_order.id,
+                quantity=item.quantity,
+                price=item.price,
+                product_id=item.product_id
             )
-            await self.session.execute(reorder_query)
-
-        await self.create_order_with_cart(user_id)
-        return {"status": "Reorder completed successfully"}
-
+            for item in last_order.items
+        ]
+        self.session.add_all(new_order_items)
+        return new_order
     
     async def get_one_or_none(self, *filters, **filter_by):
         query = (select(self.model)

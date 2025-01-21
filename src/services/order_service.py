@@ -120,11 +120,12 @@ class OrderService:
         order = await self.order_repo.get_orders_by_user(user_id=user_id)
         return order[-1]
     
-    async def reorder_last_order(self, user_id: int):
+    async def reorder_last_order(self, user_id: int, user_email: str):
         try:
-            await self.order_repo.reorder_last_order(user_id)
+            new_order = await self.order_repo.reorder_last_order(user_id)
             await self.db_manager.commit()
+            notify_user_about_orders_status.apply_async(args=[user_email, "pending", new_order.id])
             return {"status": "ok"}
         except Exception as e:
             await self.db_manager.rollback()
-            raise HTTPException(status_code=500, detail={'message': 'Failed to deliver orders', 'error': str(e)})
+            raise HTTPException(status_code=500, detail={'message': 'Reorder attempt failed', 'error': str(e)})
