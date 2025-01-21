@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import insert, select, update
 from sqlalchemy.orm import selectinload, joinedload
 from src.models.cart import CartModel
 from src.models.order_items import OrderItemModel
@@ -45,13 +45,37 @@ class OrderRepository(BaseRepository):
         await CartRepository(self.session).clear_cart(user_id=user_id)
         return new_order
     
-    async def get_filtered(self, user_id: int | None = None, order_id: int | None = None):
+    async def get_orders_by_user(self, **filter_by):
         result = await self.session.execute(
             select(OrderModel)
             .options(selectinload(OrderModel.items).selectinload(OrderItemModel.product))  # Загружаем связанные данные
-            .where(OrderModel.user_id == user_id, OrderModel.id == order_id)
+            .filter_by(**filter_by)
         )
         return result.scalars().all()
+    
+    async def reorder_last_order(self, user_id: int):
+        # Получаем последний заказ
+        query = (
+            select(self.model)
+            .options(selectinload(self.model.items))
+            .where(self.model.user_id == user_id)
+            .order_by(self.model.id.desc())
+        )
+        result = await self.session.execute(query)
+        last_order = result.scalars().first()
+
+        # Добавляем товары из последнего заказа в корзину
+        for item in last_order.items:
+            reorder_query = insert(CartModel).values(
+                user_id=user_id,
+                product_id=item.product_id,
+                quantity=item.quantity
+            )
+            await self.session.execute(reorder_query)
+
+        await self.create_order_with_cart(user_id)
+        return {"status": "Reorder completed successfully"}
+
     
     async def get_one_or_none(self, *filters, **filter_by):
         query = (select(self.model)
