@@ -3,6 +3,7 @@ from fastapi import HTTPException
 
 from src.db.postgres.manager import DBManager
 from src.tasks.notifications import notify_user_about_orders_status
+from src.dao_mongo.orders import get_last_order_mongo, reorder_last_order_mongo
 
 class OrderService:
     def __init__(self, db_manager: DBManager):
@@ -121,11 +122,16 @@ class OrderService:
         return order[-1]
     
     async def reorder_last_order(self, user_id: int, user_email: str):
-        try:
-            new_order = await self.order_repo.reorder_last_order(user_id)
-            await self.db_manager.commit()
-            notify_user_about_orders_status.apply_async(args=[user_email, "pending", new_order.id])
-            return {"status": "ok"}
-        except Exception as e:
-            await self.db_manager.rollback()
-            raise HTTPException(status_code=500, detail={'message': 'Reorder attempt failed', 'error': str(e)})
+        last_order_pg = await self.get_last_order(user_id)
+        last_order_mongo = await get_last_order_mongo(user_id)
+        if last_order_pg.id > last_order_mongo["order_id"]:
+            try:
+                new_order = await self.order_repo.reorder_last_order(user_id)
+                await self.db_manager.commit()
+            except Exception as e:
+                await self.db_manager.rollback()
+                raise HTTPException(status_code=500, detail={'message': 'Reorder attempt failed', 'error': str(e)})
+        else: 
+            new_order = await reorder_last_order_mongo(user_id)
+        notify_user_about_orders_status.apply_async(args=[user_email, "pending", new_order.id])
+        return {"status": "ok"}
