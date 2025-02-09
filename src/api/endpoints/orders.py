@@ -20,13 +20,6 @@ async def get_all_orders_by_user(
 ):
     return await order_service.get_all_orders(user_id)
 
-@router.get('/last_order')
-async def get_last_order(
-    user_id: current_user_id,
-    order_service: Annotated[OrderService, Depends(get_order_service)]
-):
-    return await order_service.get_last_order(user_id)
-
 @router.post('/reorder')
 async def reorder_last_order(
     user_id: current_user_id,
