@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, OAuth2PasswordRequestFormStrict
 from datetime import timedelta
 from src.schemas.users import UserAdd, UserRequestAdd, UserLogin
 from src.db.postgres.manager import DBManager

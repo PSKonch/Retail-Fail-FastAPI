@@ -118,13 +118,15 @@ class OrderService:
             raise HTTPException(status_code=500, detail={'message': 'Failed to deliver orders', 'error': str(e)})
         
     async def get_last_order(self, user_id: int):
-        order = await self.order_repo.get_orders_by_user(user_id=user_id)
+        order = await self.order_repo.get_orders_by_user(user_id=user_id, status="got")
+        if not order:
+            return None
         return order[-1]
     
     async def reorder_last_order(self, user_id: int, user_email: str):
         last_order_pg = await self.get_last_order(user_id)
         last_order_mongo = await get_last_order_mongo(user_id)
-        if last_order_pg.id > last_order_mongo["order_id"]:
+        if last_order_pg and (last_order_pg.id > last_order_mongo["order_id"]):
             try:
                 new_order = await self.order_repo.reorder_last_order(user_id)
                 await self.db_manager.commit()

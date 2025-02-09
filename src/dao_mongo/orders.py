@@ -1,7 +1,5 @@
 from bson.objectid import ObjectId
 from pymongo import DESCENDING
-from sqlalchemy import insert
-from sqlalchemy.orm import selectinload
 
 from src.db.mongodb.manager import mongodb_manager
 from src.db.postgres.database import async_session_maker
