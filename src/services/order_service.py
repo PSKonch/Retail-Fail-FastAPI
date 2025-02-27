@@ -3,7 +3,7 @@ from fastapi import HTTPException
 
 from src.db.postgres.manager import DBManager
 from src.tasks.notifications import notify_user_about_orders_status
-from src.dao_mongo.orders import get_last_order_mongo, reorder_last_order_mongo
+from src.dao_mongo.orders import get_last_order_mongo, reorder_last_order_mongo, get_orders_mongo
 
 class OrderService:
     def __init__(self, db_manager: DBManager):
@@ -14,7 +14,12 @@ class OrderService:
 
     async def get_all_orders(self, user_id: int):
         try:
-            return await self.order_repo.get_orders_by_user(user_id)
+            orders = []
+            orders_pg = await self.order_repo.get_orders_by_user(user_id=user_id)
+            orders.append(orders_pg)
+            orders_mongo = await get_orders_mongo(user_id)
+            orders.append(orders_mongo)
+            return orders
         except Exception as e:
             raise HTTPException(status_code=500, detail={'message': 'Failed to fetch orders', 'error': str(e)})
 

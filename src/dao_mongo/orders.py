@@ -17,6 +17,16 @@ async def get_last_order_mongo(
         result["_id"] = str(result["_id"])
     return result
 
+async def get_orders_mongo(user_id: int):
+    collection = mongodb_manager.db["order_history"]
+    cursor = collection.find({"user_id": user_id})
+    orders = await cursor.to_list(length=None) 
+    
+    for order in orders:
+        order["_id"] = str(order["_id"])
+
+    return orders
+
 async def reorder_last_order_mongo(
         user_id: int
 ):
