@@ -17,6 +17,17 @@ async def get_last_order_mongo(
         result["_id"] = str(result["_id"])
     return result
 
+async def get_order_by_id_mongo(
+        user_id: int, 
+        order_id: int
+):
+    result = await mongodb_manager.db["order_history"].find_one(
+        {"user_id": user_id, "order_id": order_id}
+    )
+    if result:
+        result["_id"] = str(result["_id"])
+    return result
+
 async def get_orders_mongo(user_id: int):
     collection = mongodb_manager.db["order_history"]
     cursor = collection.find({"user_id": user_id})
