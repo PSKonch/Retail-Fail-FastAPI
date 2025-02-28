@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     @property
     def MONGO_URL(self):
         return f"mongodb://{self.MONGO_HOST}:{self.MONGO_PORT}/{self.MONGO_NAME}"
+    
+    PUBLISH_STRIPE_KEY: str
+    SECRET_STRIPE_KEY: str
 
     model_config = SettingsConfigDict(env_file=".env")
 
