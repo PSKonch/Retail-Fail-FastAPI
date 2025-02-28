@@ -26,3 +26,24 @@ async def create_intent(amount: int, currency: str = "usd"):
     except stripe.error.StripeError as e:
             return {"error": str(e)}
     
+@router.post("/capture/{payment_intent_id}")
+async def capture_payment(payment_intent_id: str):
+    try:
+        intent = await asyncio.to_thread(
+            stripe.PaymentIntent.capture,
+            payment_intent_id
+        )
+        return {"status": intent.status, "intent": intent}
+    except stripe.error.StripeError as e:
+        return {"error": str(e)}
+    
+@router.post("/cancel/{payment_intent_id}")
+async def cancel_payment(payment_intent_id: str):
+    try:
+        intent = await asyncio.to_thread(
+            stripe.PaymentIntent.cancel,
+            payment_intent_id
+        )
+        return {"status": intent.status, "intent": intent}
+    except stripe.error.StripeError as e:
+        return {"error": str(e)}
