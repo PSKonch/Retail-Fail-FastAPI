@@ -1,3 +1,5 @@
+import asyncio
+import stripe
 from typing import List
 from fastapi import HTTPException
 
@@ -31,6 +33,25 @@ class OrderService:
             return order
         except Exception as e:
             raise HTTPException(status_code=500, detail={'message': 'Failed to fetch order', 'error': str(e)})
+        
+    async def pay_for_order(self, user_id: int, order_id: int):
+        order = await self.get_order_by_id(user_id, order_id)
+
+        if order.status != "pending":
+            raise HTTPException(status_code=400, detail={'message': 'Only pending order can be paid'})
+        
+        try: 
+            intent = await asyncio.to_thread(
+                stripe.PaymentIntent.create,
+                amount=order.total_price,
+                currency="usd",
+                payment_method=["card"]
+            )    
+        
+        except Exception as e:
+            await self.db_manager.rollback()
+            raise HTTPException(status_code=500, detail={'message': 'Failed to create a payment', 'error': str(e)})
+
 
     async def create_order(self, user_id: int, user_email: str):
         try:
@@ -43,7 +64,7 @@ class OrderService:
             raise HTTPException(status_code=400, detail={'message': str(e)})
         except Exception as e:
             await self.db_manager.rollback()
-            raise HTTPException(status_code=500, detail={'message': 'Failed to create order', 'error': str(e)})
+            raise HTTPException(status_code=500, detail={'message': 'Failed to create order', 'error': str(e)})    
 
     async def cancel_order(self, user_id: int, user_email: str, order_id: int):
         try:

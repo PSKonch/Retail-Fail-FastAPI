@@ -14,6 +14,7 @@ from src.models.users import UserModel
 from src.models.orders import OrderModel
 from src.models.order_items import OrderItemModel
 from src.models.cart import CartModel
+from src.models.payments import PaymentModel
 
 from src.core.setting import settings
 

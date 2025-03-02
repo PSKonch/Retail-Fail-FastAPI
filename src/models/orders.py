@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
@@ -16,3 +16,4 @@ class OrderModel(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey('user.id'))
 
     items: Mapped[List['OrderItemModel']] = relationship('OrderItemModel', back_populates='order') # type: ignore
+    payment: Mapped[Optional["PaymentModel"]] = relationship("PaymentModel", back_populates="order") # type: ignore
