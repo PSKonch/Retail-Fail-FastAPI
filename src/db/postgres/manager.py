@@ -4,6 +4,7 @@ from src.repositories.products import ProductRepository
 from src.repositories.cart import CartRepository
 from src.repositories.categories import CategoryRepository
 from src.repositories.users import UserRepository
+from src.repositories.payments import PaymentRepository
 
 class DBManager:
     def __init__(self, session_factory):
@@ -18,6 +19,7 @@ class DBManager:
         self.order = OrderRepository(self.session)
         self.order_item = OrderItemRepository(self.session)
         self.user = UserRepository(self.session)
+        self.payment = PaymentRepository(self.session)
 
         return self
 

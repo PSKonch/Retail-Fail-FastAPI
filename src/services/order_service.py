@@ -1,3 +1,5 @@
+import asyncio
+import stripe
 from typing import List
 from fastapi import HTTPException
 
@@ -11,6 +13,7 @@ class OrderService:
         self.order_repo = db_manager.order
         self.user_repo = db_manager.user
         self.cart_repo = db_manager.cart
+        self.payment_repo = db_manager.payment
 
     async def get_all_orders(self, user_id: int):
         try:
@@ -31,19 +34,46 @@ class OrderService:
             return order
         except Exception as e:
             raise HTTPException(status_code=500, detail={'message': 'Failed to fetch order', 'error': str(e)})
-
-    async def create_order(self, user_id: int, user_email: str):
+        
+    async def create_and_pay_order(self, user_id: int, user_email: str):
         try:
             new_order = await self.order_repo.create_order_with_cart(user_id=user_id)
             await self.db_manager.commit()
+
+            intent = await asyncio.to_thread(
+                stripe.PaymentIntent.create,
+                amount=new_order.total_price,
+                currency="usd",
+                payment_method_types=["card"]
+            )
+
+            payment = await self.payment_repo.add(
+                order_id=new_order.id,
+                payment_intent_id=intent.id,
+                status="created"
+            )
+            await self.db_manager.commit()
+
             notify_user_about_orders_status.apply_async(args=[user_email, "pending", new_order.id])
-            return {"status": "ok", "order_id": new_order.id, "total_price": new_order.total_price}
+
+            return {
+                "status": "created",
+                "order_id": new_order.id,
+                "total_price": new_order.total_price,
+                "client_secret": intent.client_secret
+            }
+
+        except stripe.error.StripeError as e:
+            await self.db_manager.rollback()
+            raise HTTPException(status_code=400, detail={"message": "Payment failed", "error": str(e)})
+
         except ValueError as e:
             await self.db_manager.rollback()
             raise HTTPException(status_code=400, detail={'message': str(e)})
+
         except Exception as e:
             await self.db_manager.rollback()
-            raise HTTPException(status_code=500, detail={'message': 'Failed to create order', 'error': str(e)})
+            raise HTTPException(status_code=500, detail={'message': 'Failed to create order', 'error': str(e)}) 
 
     async def cancel_order(self, user_id: int, user_email: str, order_id: int):
         try:

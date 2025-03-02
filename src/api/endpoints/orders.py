@@ -43,7 +43,7 @@ async def create_order(
     user_email: current_user_email,
     order_service: Annotated[OrderService, Depends(get_order_service)]
 ):
-    return await order_service.create_order(user_id, user_email)
+    return await order_service.create_and_pay_order(user_id, user_email)
 
 
 @router.delete('/order/{order_id}/cancel', description="Отмена заказа")
