@@ -42,9 +42,11 @@ class OrderService:
 
             intent = await asyncio.to_thread(
                 stripe.PaymentIntent.create,
-                amount=new_order.total_price,
+                amount=new_order.total_price, 
                 currency="usd",
-                payment_method_types=["card"]
+                payment_method="pm_card_visa",  
+                confirm=True,  
+                automatic_payment_methods={"enabled": True, "allow_redirects": "never"}
             )
 
             payment = await self.payment_repo.add(
