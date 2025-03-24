@@ -1,5 +1,6 @@
 import asyncio
 import stripe
+import stripe.error
 from typing import List
 from fastapi import HTTPException
 
@@ -76,6 +77,22 @@ class OrderService:
         except Exception as e:
             await self.db_manager.rollback()
             raise HTTPException(status_code=500, detail={'message': 'Failed to create order', 'error': str(e)}) 
+        
+    async def refund_payment(self, order_id: str):
+        try:
+            
+            stripe.PaymentIntent.cancel(order_id)
+            
+            updated_intent = await self.payment_repo.update(
+                filters={"payment_intent_id": order_id},
+                values={"status": "canceled"}
+            )
+
+            await self.db_manager.commit()
+
+            return {"status": "payment was canceled"}
+        except stripe.error.StripeError as e:
+            raise HTTPException(status_code=400, detail=f"Something went wrong, {e}")
 
     async def cancel_order(self, user_id: int, user_email: str, order_id: int):
         try:

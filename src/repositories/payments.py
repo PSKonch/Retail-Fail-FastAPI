@@ -1,4 +1,4 @@
-from sqlalchemy import insert
+from sqlalchemy import insert, update
 
 from src.models.payments import PaymentModel
 from src.repositories.base import BaseRepository
@@ -14,3 +14,7 @@ class PaymentRepository(BaseRepository):
             await self.session.execute(query)
         except Exception as e:
             raise ValueError(f"Failed to add entry to {self.model.__name__}: {e}")
+        
+    async def update(self, filters: dict, values: dict):
+        query = update(self.model).where(*[getattr(self.model, key) == value for key, value in filters.items()]).values(**values)
+        await self.session.execute(query)

@@ -55,6 +55,13 @@ async def cancel_order(
 ):
     return await order_service.cancel_order(user_id, user_email, order_id)
 
+@router.delete('/payment/cancel')
+async def cancled_payment(
+    order_id: str,
+    order_service: Annotated[OrderService, Depends(get_order_service)]
+):
+    return await order_service.refund_payment(order_id)
+
 
 @router.post('/order/{order_id}/to_user/{user_id}', description="Выдача заказа пользователю")
 async def give_an_order_to_user(
