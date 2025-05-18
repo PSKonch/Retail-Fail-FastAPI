@@ -20,17 +20,72 @@ export default function CategoriesList() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading) return (
+    <div style={{
+      textAlign: "center",
+      fontSize: "20px",
+      color: "#3b82f6",
+      margin: "40px 0"
+    }}>Загрузка...</div>
+  );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      {categories.map(cat => (
-        <div key={cat.id} className="bg-white p-4 rounded-xl shadow hover:shadow-md">
-          <div className="font-bold text-lg">{cat.title}</div>
-          <div className="text-xs text-gray-500">{cat.slug}</div>
-          <Link href={`/category/${cat.id}`} className="text-blue-600 text-sm mt-2 inline-block">Смотреть товары</Link>
-        </div>
-      ))}
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "1fr",
+      gap: 22,
+      maxWidth: 950,
+      margin: "0 auto",
+      marginTop: 30,
+      marginBottom: 30
+    }}>
+      {/* Адаптивность: 4 колонки на больших экранах */}
+      <style>{`
+        @media (min-width: 900px) {
+          .categories-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+      `}</style>
+      <div className="categories-grid" style={{
+        display: "grid",
+        gridTemplateColumns: "1fr",
+        gap: 22
+      }}>
+        {categories.map(cat => (
+          <div key={cat.id} style={{
+            background: "#fff",
+            padding: "28px 20px",
+            borderRadius: 18,
+            boxShadow: "0 2px 16px rgba(30,32,34,0.06)",
+            border: "1px solid #e5e7eb",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            transition: "box-shadow .2s",
+          }}>
+            <div style={{
+              fontWeight: 700,
+              fontSize: "1.18rem",
+              marginBottom: 4
+            }}>{cat.title}</div>
+            <div style={{
+              fontSize: "0.91rem",
+              color: "#64748b",
+              marginBottom: 8
+            }}>{cat.slug}</div>
+            <Link href={`/categories/${cat.id}`} style={{
+              color: "#2563eb",
+              fontSize: "0.99rem",
+              marginTop: 8,
+              textDecoration: "none",
+              fontWeight: 500
+            }}>
+              Смотреть товары →
+            </Link>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

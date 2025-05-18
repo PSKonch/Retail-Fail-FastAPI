@@ -23,16 +23,48 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
-  if (!user) return <div>Загрузка...</div>;
+  if (!user) return (
+    <div style={{
+      textAlign: "center",
+      fontSize: "20px",
+      color: "#3b82f6",
+      margin: "40px 0"
+    }}>Загрузка...</div>
+  );
 
   return (
-    <div className="max-w-lg mx-auto bg-white rounded-xl p-8 shadow">
-      <h1 className="text-2xl font-bold mb-4">Профиль</h1>
-      <div>Логин: {user.username}</div>
-      <div>Имя: {user.first_name}</div>
-      <div>Фамилия: {user.second_name}</div>
-      <div>Email: {user.email}</div>
-      <button className="btn btn-error mt-4" onClick={handleLogout}>Выйти</button>
+    <div
+      style={{
+        maxWidth: 440,
+        margin: "50px auto",
+        background: "#fff",
+        borderRadius: 18,
+        padding: "38px 28px",
+        boxShadow: "0 2px 16px rgba(30,32,34,0.10)",
+        fontFamily: "'Segoe UI', Arial, sans-serif"
+      }}
+    >
+      <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: 18 }}>Профиль</h1>
+      <div style={{ marginBottom: 8 }}>Логин: <b>{user.username}</b></div>
+      <div style={{ marginBottom: 8 }}>Имя: <b>{user.first_name}</b></div>
+      <div style={{ marginBottom: 8 }}>Фамилия: <b>{user.second_name}</b></div>
+      <div style={{ marginBottom: 20 }}>Email: <b>{user.email}</b></div>
+      <button
+        onClick={handleLogout}
+        style={{
+          width: "100%",
+          padding: "12px",
+          background: "#ef4444",
+          color: "#fff",
+          fontWeight: 600,
+          border: "none",
+          borderRadius: 10,
+          fontSize: "1.08rem",
+          cursor: "pointer"
+        }}
+      >
+        Выйти
+      </button>
     </div>
   );
 }

@@ -29,14 +29,54 @@ export default function RegisterPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 p-6 bg-white shadow-xl rounded-2xl">
-      <h1 className="text-xl font-bold mb-6">Регистрация</h1>
-      <input name="username" value={form.username} onChange={handleChange} placeholder="Логин" className="mb-4 input input-bordered w-full" />
-      <input name="first_name" value={form.first_name} onChange={handleChange} placeholder="Имя" className="mb-4 input input-bordered w-full" />
-      <input name="second_name" value={form.second_name} onChange={handleChange} placeholder="Фамилия" className="mb-4 input input-bordered w-full" />
-      <input name="email" value={form.email} onChange={handleChange} placeholder="E-mail" className="mb-4 input input-bordered w-full" />
-      <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Пароль" className="mb-4 input input-bordered w-full" />
-      <button type="submit" className="btn btn-primary w-full">Зарегистрироваться</button>
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        maxWidth: 420,
+        margin: "50px auto",
+        padding: "32px 22px",
+        background: "#fff",
+        boxShadow: "0 2px 16px rgba(30,32,34,0.10)",
+        borderRadius: 18,
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+      }}
+    >
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 12, textAlign: "center" }}>
+        Регистрация
+      </h1>
+      <input name="username" value={form.username} onChange={handleChange} placeholder="Логин" required style={inputStyle} />
+      <input name="first_name" value={form.first_name} onChange={handleChange} placeholder="Имя" required style={inputStyle} />
+      <input name="second_name" value={form.second_name} onChange={handleChange} placeholder="Фамилия" required style={inputStyle} />
+      <input name="email" value={form.email} onChange={handleChange} placeholder="E-mail" required type="email" style={inputStyle} />
+      <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Пароль" required style={inputStyle} />
+      <button
+        type="submit"
+        style={{
+          padding: "12px",
+          background: "#2563eb",
+          color: "#fff",
+          fontWeight: 600,
+          border: "none",
+          borderRadius: 10,
+          fontSize: "1.08rem",
+          cursor: "pointer",
+          marginTop: 10
+        }}
+      >
+        Зарегистрироваться
+      </button>
     </form>
   );
 }
+
+const inputStyle: React.CSSProperties = {
+  padding: "11px 14px",
+  fontSize: "1rem",
+  border: "1px solid #d1d5db",
+  borderRadius: 8,
+  outline: "none",
+  fontWeight: 500,
+  marginBottom: 2
+};
